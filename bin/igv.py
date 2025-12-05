@@ -187,6 +187,11 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     print("Loading MuData file...")
+    print("test")
+    output_dir = "evaluation_output"
+    os.makedirs(output_dir, exist_ok=True)
+
+    print(args.mdata_path)
     mdata = mu.read(args.mdata_path)
 
     # Determine which results to process based on --default flag
@@ -203,7 +208,7 @@ if __name__ == "__main__":
         ]
 
     # Process each results configuration
-    for config in results_configs:
-        process_results_config(mdata, args.gtf, config["key"], config["type"])
+    # for config in results_configs:
+    #     process_results_config(mdata, args.gtf, config["key"], config["type"])
 
     print("\nAll processing completed successfully")

@@ -13,6 +13,7 @@ process inference_sceptre {
     """
     cat <<EOF > args.txt
     ${mudata_fp}
+    ${params.INFERENCE_SCEPTRE_assign_grnas_method}
     ${params.INFERENCE_SCEPTRE_side}
     ${params.INFERENCE_SCEPTRE_grna_integration_strategy}
     ${params.INFERENCE_SCEPTRE_resampling_approximation}

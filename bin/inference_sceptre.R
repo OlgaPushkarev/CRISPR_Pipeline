@@ -95,7 +95,7 @@ convert_mudata_to_sceptre_object_v1 <- function(mudata, remove_collinear_covaria
 }
 
 
-inference_sceptre_m <- function(mudata, n_processors = NA, ...) {
+inference_sceptre_m <- function(mudata, sceptre_g_assign_method, n_processors = NA, ...) {
   # convert MuData object to sceptre object
   sceptre_object <- convert_mudata_to_sceptre_object_v1(mudata, remove_collinear_covariates = TRUE)
 
@@ -141,7 +141,7 @@ inference_sceptre_m <- function(mudata, n_processors = NA, ...) {
     args_list[["discovery_pairs"]] <- discovery_pairs
   }
   #print (discovery_pairs)
-
+  print(sceptre_object@covariate_data_frame)
 
   # construct formula excluding gRNA covariates to avoid multicollinearity
   # (gRNA assignments are binary, making grna_n_nonzero and grna_n_umis identical)
@@ -166,8 +166,8 @@ inference_sceptre_m <- function(mudata, n_processors = NA, ...) {
   # assign grnas and run QC (relaxed thresholds to keep all cells; mirror prior behaviour)
   sceptre_object <- sceptre_object |>
     sceptre::assign_grnas(
-      method = "thresholding",
-      threshold = 1,
+      method = sceptre_g_assign_method,
+      # threshold = 1,
       parallel = (!is.na(n_processors) && as.integer(n_processors) > 1),
       n_processors = if (!is.na(n_processors) && as.integer(n_processors) > 1) as.integer(n_processors) else NULL
     ) |>
@@ -210,6 +210,13 @@ inference_sceptre_m <- function(mudata, n_processors = NA, ...) {
     ),
     silent = TRUE
   )
+  try(
+    sceptre::write_outputs_to_directory(
+      union_test_results,
+      "/sceptre_output_union"
+    ),
+    silent = TRUE
+  )
 
   ## 2) Singleton (per-guide) analysis — reuse sceptre_object to exploit caching
   args_singleton <- args_list
@@ -220,8 +227,8 @@ inference_sceptre_m <- function(mudata, n_processors = NA, ...) {
   # run assignment, qc and discovery for singleton
   sceptre_object <- sceptre_object |>
     sceptre::assign_grnas(
-      method = "thresholding",
-      threshold = 1,
+      method = sceptre_g_assign_method,
+      # threshold = 1,
       parallel = (!is.na(n_processors) && as.integer(n_processors) > 1),
       n_processors = if (!is.na(n_processors) && as.integer(n_processors) > 1) as.integer(n_processors) else NULL
     ) |>
@@ -259,6 +266,13 @@ inference_sceptre_m <- function(mudata, n_processors = NA, ...) {
     ),
     silent = TRUE
   )
+  try(
+    sceptre::write_outputs_to_directory(
+      singleton_test_results,
+      "/sceptre_output_singleton"
+    ),
+    silent = TRUE
+  )
 
   # return mudata (with union results in metadata) and both result tables
   return(list(
@@ -275,12 +289,13 @@ if (!exists(".sourced_from_test")) {
 
   # obtain the command line arguments
   mudata_fp <- args[1]
-  side <- args[2]
-  grna_integration_strategy <- args[3]
-  resampling_approximation <- args[4]
-  control_group <- args[5]
-  resampling_mechanism <- args[6]
-  n_processors <- if (length(args) >= 7) suppressWarnings(as.integer(args[7])) else NA
+  sceptre_g_assign_method <- args[2]
+  side <- args[3]
+  grna_integration_strategy <- args[4]
+  resampling_approximation <- args[5]
+  control_group <- args[6]
+  resampling_mechanism <- args[7]
+  n_processors <- if (length(args) >= 8) suppressWarnings(as.integer(args[8])) else NA
 
   # read MuData
   mudata_in <- MuData::readH5MU(mudata_fp)
@@ -288,6 +303,7 @@ if (!exists(".sourced_from_test")) {
   # run sceptre inference
   results <- inference_sceptre_m(
     mudata = mudata_in,
+    sceptre_g_assign_method = sceptre_g_assign_method,
     side = side,
     grna_integration_strategy = grna_integration_strategy,
     resampling_approximation = resampling_approximation,

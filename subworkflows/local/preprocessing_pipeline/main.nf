@@ -12,9 +12,10 @@ workflow preprocessing_pipeline {
     Preprocessed_AnnData = PreprocessAnnData(
         concat_anndata_rna,
         trans_out_dir.flatten().first(),
+        params.QC_filter_outliers,
         params.QC_min_genes_per_cell,
         params.QC_min_cells_per_gene,
-        params.QC_pct_mito,
+        params.QC_n_mads,
         params.REFERENCE_transcriptome
     )
 

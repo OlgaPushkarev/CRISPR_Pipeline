@@ -170,7 +170,7 @@ workflow CRISPR_PIPELINE {
         evaluation_pipeline (
             Preprocessing.gencode_gtf,
             Inference.inference_mudata
-            )
+        )
 
         dashboard_pipeline_HASHING (
             seqSpecCheck_pipeline_HASHING.out.guide_seqSpecCheck_plots,
@@ -217,8 +217,8 @@ workflow CRISPR_PIPELINE {
 
         evaluation_pipeline (
             Preprocessing.gencode_gtf,
-            Inference.inference_mudata
-            )
+            GuideAssignment.concat_mudata
+        )
 
         dashboard_pipeline (
             seqSpecCheck_pipeline.out.guide_seqSpecCheck_plots,
@@ -228,13 +228,11 @@ workflow CRISPR_PIPELINE {
             mapping_rna_pipeline.out.ks_transcripts_out_dir_collected,
             MergeMuData.adata_guide,
             mapping_guide_pipeline.out.ks_guide_out_dir_collected,
-            Inference.inference_mudata,
+            Inference.inference_mudata, // GuideAssignment.concat_mudata
             Preprocessing.figures_dir,
             evaluation_pipeline.out.evaluation_output_dir
             )
     }
-
-
 
     softwareVersionsToYAML(ch_versions)
         .collectFile(

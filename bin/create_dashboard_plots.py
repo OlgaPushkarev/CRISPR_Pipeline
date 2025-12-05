@@ -2,14 +2,17 @@
 
 import argparse
 import pandas as pd
+import matplotlib
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
 import muon as mu
 import numpy as np
+matplotlib.rcParams["axes.spines.top"] = False
+matplotlib.rcParams["axes.spines.right"] = False
 
 def plot_umi_threshold(mudata, save_dir):
-    plt.figure(figsize=(10, 6))
+    plt.figure(figsize=(5, 5))
     plt.rcParams['font.size'] = 12
 
     all_cutoffs = [200, 500, 1000, 2000, 5000]
@@ -36,11 +39,11 @@ def plot_umi_threshold(mudata, save_dir):
 
     plt.tight_layout()
     plot_path = os.path.join(save_dir, 'scRNA_barcodes_UMI_thresholds.png')
-    plt.savefig(plot_path, dpi=300)
+    plt.savefig(plot_path, dpi=300, bbox_inches="tight", transparent=True)
     plt.close()
 
 def plot_detected_genes_threshold(mudata, save_dir):
-    plt.figure(figsize=(10, 6))
+    plt.figure(figsize=(5, 5))
     plt.rcParams['font.size'] = 12
 
     all_cutoffs = [200, 500, 1000, 1500, 2000]
@@ -67,11 +70,11 @@ def plot_detected_genes_threshold(mudata, save_dir):
 
     plt.tight_layout()
     plot_path = os.path.join(save_dir, 'scRNA_barcodes_detected_genes_thresholds.png')
-    plt.savefig(plot_path, dpi=300)
+    plt.savefig(plot_path, dpi=300, bbox_inches="tight", transparent=True)
     plt.close()
 
 def plot_guides_umi_threshold(mudata, save_dir):
-    plt.figure(figsize=(10, 6))
+    plt.figure(figsize=(5, 5))
     plt.rcParams['font.size'] = 12
 
     all_cutoffs = [0, 5, 10, 50, 100, 1000]
@@ -98,7 +101,7 @@ def plot_guides_umi_threshold(mudata, save_dir):
 
     plt.tight_layout()
     plot_path = os.path.join(save_dir, 'guides_UMI_thresholds.png')
-    plt.savefig(plot_path, dpi=300)
+    plt.savefig(plot_path, dpi=300, bbox_inches="tight", transparent=True)
     plt.close()
 
 def plot_sgRNA_frequencies(mudata, save_dir):
@@ -126,7 +129,7 @@ def plot_sgRNA_frequencies(mudata, save_dir):
     print ('should be sparse matrix')
     df_guide_assignment = pd.DataFrame.sparse.from_spmatrix(guide_assignment_matrix, index=cell_ids, columns=guide_ids)
 
-    plt.figure(figsize=(10, 6))
+    plt.figure(figsize=(5, 5))
     plt.rcParams['font.size'] = 12
 
     sgRNA_frequencies = (df_guide_assignment > 0).sum(axis=0)
@@ -146,30 +149,30 @@ def plot_sgRNA_frequencies(mudata, save_dir):
 
     plt.tight_layout()
     plot_path = os.path.join(save_dir, 'guides_hist_num_sgRNA.png')
-    plt.savefig(plot_path, dpi=300)
+    plt.savefig(plot_path, dpi=300, bbox_inches="tight", transparent=True)
     plt.close()
 
 def plot_guides_per_cell(mudata, save_dir):
     guides_per_cell = np.sum(mudata.mod['guide'].layers['guide_assignment'], axis=1)
-    plt.figure(figsize=(10, 6))
+    plt.figure(figsize=(5, 5))
     plt.hist(guides_per_cell, bins=50, alpha=0.6, color='skyblue', ec="steelblue")
     plt.xlabel('Number of Guides per Cell')
     plt.ylabel('Density')
     plt.title('Histogram of Guides per Cell')
     plot_path = os.path.join(save_dir, 'guides_per_cell_histogram.png')
-    plt.savefig(plot_path, dpi=300)
+    plt.savefig(plot_path, dpi=300, bbox_inches="tight", transparent=True)
     plt.close()
 
 def plot_cells_per_guide(mudata, save_dir):
     cells_per_guide = np.sum(mudata.mod['guide'].layers['guide_assignment'], axis=0)
     sorted_cells_per_guide = np.sort(np.array(cells_per_guide).flatten())
-    plt.figure(figsize=(10, 6))
+    plt.figure(figsize=(5, 5))
     plt.hist(sorted_cells_per_guide, bins=50, alpha=0.6, color='skyblue', ec='steelblue')
     plt.xlabel('Number of Cells per Guide')
     plt.ylabel('Density')
     plt.title('Histogram of Cells per Guide')
     plot_path = os.path.join(save_dir, 'cells_per_guide_histogram.png')
-    plt.savefig(plot_path, dpi=300)
+    plt.savefig(plot_path, dpi=300, bbox_inches="tight", transparent=True)
     plt.close()
 
 def main():

@@ -1,6 +1,7 @@
 process createDashboard {
     cache 'lenient'
     publishDir './pipeline_dashboard', mode: 'copy'
+    publishDir './pipeline_output', mode: 'copy'
 
     input:
         path guide_seqSpecCheck_plots

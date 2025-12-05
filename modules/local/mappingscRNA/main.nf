@@ -10,6 +10,8 @@ process mappingscRNA {
     tuple val(meta), path(reads)
     path transcriptome_idx
     path transcriptome_t2g
+    path cdna
+    path nascent_idx
     path parsed_seqSpec_file
     path barcode_file
 
@@ -27,9 +29,19 @@ process mappingscRNA {
         bustools_bin=\$(type -p bustools)
         chemistry=\$(extract_parsed_seqspec.py --file ${parsed_seqSpec_file})
 
-        kb count -i ${transcriptome_idx} -g ${transcriptome_t2g} --verbose -w ${barcode_file} \\
-                --h5ad --kallisto \$k_bin --bustools \$bustools_bin -x \$chemistry -o ${batch}_ks_transcripts_out -t ${task.cpus} \\
-                ${fastq_files} --overwrite
+        kb count -i ${transcriptome_idx} \\
+                -g ${transcriptome_t2g} \\
+                --workflow nac --mm -c1 ${cdna} -c2 ${nascent_idx} \\
+                -x \$chemistry \\
+                -w ${barcode_file} \\
+                -o ${batch}_ks_transcripts_out \\
+                -t ${task.cpus} \\
+                ${fastq_files} \\
+                --h5ad \\
+                --kallisto \$k_bin \
+                --bustools \$bustools_bin \\
+                --overwrite \\
+                --verbose
 
         echo "scRNA KB mapping Complete"
         """

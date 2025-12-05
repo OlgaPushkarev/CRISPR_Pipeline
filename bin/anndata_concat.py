@@ -35,7 +35,19 @@ def main():
         print(f"Processing {h5ad_path}")
         
         adata = ad.read_h5ad(h5ad_path)
-        
+        try:
+            if all(layer in adata.layers for layer in ['mature', 'nascent', 'ambiguous']):
+                adata.X = (
+                    adata.layers['mature'] + 
+                    adata.layers['nascent'] + 
+                    adata.layers['ambiguous']
+                )
+                print("Nascent (nac) workflow detected: combining mature, nascent, and ambiguous counts into .X")
+            else:
+                print("Standard workflow detected: Using existing .X matrix")
+        except Exception as e:
+            print(f"Error combining layers: {e}")
+            
         if idx == 0 and adata.var_names.name is not None:
             var_index_name = adata.var_names.name
             print(f"Captured var index name: {var_index_name}")

@@ -30,17 +30,35 @@ process mappingGuide {
         if [ '${is_10xv3v}' = 'true' ]; then
             echo "Detected 10x V3 chemistry, running additional processing"
 
-            kb count -i ${guide_index} -g ${t2g_guide} --verbose -w ${barcode_file} --workflow kite:10xFB \\
-                --h5ad --kallisto "\$k_bin" --bustools "\$bustools_bin" -x 10XV3 \\
-                -o ${batch}_ks_guide_out -t ${task.cpus} \\
-                ${fastq_files} --overwrite
+            kb count -i ${guide_index} \\
+                -g ${t2g_guide} \\
+                --workflow kite:10xFB \\
+                -x 10XV3 \\
+                -w ${barcode_file} \\
+                -o ${batch}_ks_guide_out \\
+                -t ${task.cpus} \\
+                ${fastq_files} \\
+                --h5ad \\
+                --kallisto "\$k_bin" \\
+                --bustools "\$bustools_bin" \\
+                --overwrite \\
+                --verbose
         else
-            echo "Detected non-10x V3 chemistry, running standard processing"
+            echo "Detected non-10x V3 chemistry, running kite processing"
 
-            kb count -i ${guide_index} -g ${t2g_guide} --verbose -w ${barcode_file} \\
-                --h5ad --kallisto "\$k_bin" --bustools "\$bustools_bin" -x "\$chemistry" \\
-                -o ${batch}_ks_guide_out -t ${task.cpus} \\
-                ${fastq_files} --overwrite
+            kb count -i ${guide_index} \\
+                -g ${t2g_guide} \\
+                --workflow kite \\
+                -x "\$chemistry" \\
+                -w ${barcode_file} \\
+                -o ${batch}_ks_guide_out \\
+                -t ${task.cpus} \\
+                ${fastq_files} \\
+                --h5ad \\
+                --kallisto "\$k_bin" \\
+                --bustools "\$bustools_bin" \\
+                --overwrite \\
+                --verbose
         fi
 
         echo "gRNA KB mapping Complete"
