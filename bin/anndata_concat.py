@@ -5,6 +5,7 @@ import os
 import re
 import argparse
 import pandas as pd
+import numpy as np
 
 def extract_batch_num(filename):
     match = re.search(r'(.+)_ks_', filename)
@@ -35,12 +36,13 @@ def main():
         print(f"Processing {h5ad_path}")
         
         adata = ad.read_h5ad(h5ad_path)
+        adata.X = adata.X.astype(np.float32)
         try:
             if all(layer in adata.layers for layer in ['mature', 'nascent', 'ambiguous']):
                 adata.X = (
-                    adata.layers['mature'] + 
-                    adata.layers['nascent'] + 
-                    adata.layers['ambiguous']
+                    adata.layers['mature'].astype(np.float32) + 
+                    adata.layers['nascent'].astype(np.float32) + 
+                    adata.layers['ambiguous'].astype(np.float32)
                 )
                 print("Nascent (nac) workflow detected: combining mature, nascent, and ambiguous counts into .X")
             else:

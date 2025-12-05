@@ -187,11 +187,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     print("Loading MuData file...")
-    print("test")
     output_dir = "evaluation_output"
     os.makedirs(output_dir, exist_ok=True)
 
-    print(args.mdata_path)
     mdata = mu.read(args.mdata_path)
 
     # Determine which results to process based on --default flag

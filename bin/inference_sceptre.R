@@ -140,8 +140,6 @@ inference_sceptre_m <- function(mudata, sceptre_g_assign_method, n_processors = 
     discovery_pairs <- sceptre::construct_trans_pairs(sceptre_object)
     args_list[["discovery_pairs"]] <- discovery_pairs
   }
-  #print (discovery_pairs)
-  print(sceptre_object@covariate_data_frame)
 
   # construct formula excluding gRNA covariates to avoid multicollinearity
   # (gRNA assignments are binary, making grna_n_nonzero and grna_n_umis identical)
@@ -164,18 +162,32 @@ inference_sceptre_m <- function(mudata, sceptre_g_assign_method, n_processors = 
   # set analysis parameters for union
   sceptre_object <- do.call(sceptre::set_analysis_parameters, args_union)
   # assign grnas and run QC (relaxed thresholds to keep all cells; mirror prior behaviour)
-  sceptre_object <- sceptre_object |>
-    sceptre::assign_grnas(
-      method = sceptre_g_assign_method,
-      # threshold = 1,
-      parallel = (!is.na(n_processors) && as.integer(n_processors) > 1),
-      n_processors = if (!is.na(n_processors) && as.integer(n_processors) > 1) as.integer(n_processors) else NULL
-    ) |>
-    sceptre::run_qc(
-      n_nonzero_trt_thresh = 0L,
-      n_nonzero_cntrl_thresh = 0L,
-      p_mito_threshold = 1
-    )
+  if (sceptre_g_assign_method == "thresholding"){
+    sceptre_object <- sceptre_object |>
+      sceptre::assign_grnas(
+        method = sceptre_g_assign_method,
+        threshold = 1,
+        parallel = (!is.na(n_processors) && as.integer(n_processors) > 1),
+        n_processors = if (!is.na(n_processors) && as.integer(n_processors) > 1) as.integer(n_processors) else NULL
+      ) |>
+      sceptre::run_qc(
+        n_nonzero_trt_thresh = 0L,
+        n_nonzero_cntrl_thresh = 0L,
+        p_mito_threshold = 1
+      )
+  } else {
+    sceptre_object <- sceptre_object |>
+      sceptre::assign_grnas(
+        method = sceptre_g_assign_method,
+        parallel = (!is.na(n_processors) && as.integer(n_processors) > 1),
+        n_processors = if (!is.na(n_processors) && as.integer(n_processors) > 1) as.integer(n_processors) else NULL
+      ) |>
+      sceptre::run_qc(
+        n_nonzero_trt_thresh = 0L,
+        n_nonzero_cntrl_thresh = 0L,
+        p_mito_threshold = 1
+      )
+  }
 
   # run discovery analysis (grouped)
   sceptre_object <- sceptre_object |>
@@ -225,22 +237,40 @@ inference_sceptre_m <- function(mudata, sceptre_g_assign_method, n_processors = 
   sceptre_object <- do.call(sceptre::set_analysis_parameters, args_singleton)
 
   # run assignment, qc and discovery for singleton
-  sceptre_object <- sceptre_object |>
-    sceptre::assign_grnas(
-      method = sceptre_g_assign_method,
-      # threshold = 1,
-      parallel = (!is.na(n_processors) && as.integer(n_processors) > 1),
-      n_processors = if (!is.na(n_processors) && as.integer(n_processors) > 1) as.integer(n_processors) else NULL
-    ) |>
-    sceptre::run_qc(
-      n_nonzero_trt_thresh = 0L,
-      n_nonzero_cntrl_thresh = 0L,
-      p_mito_threshold = 1
-    ) |>
-    sceptre::run_discovery_analysis(
-      parallel = (!is.na(n_processors) && as.integer(n_processors) > 1),
-      n_processors = if (!is.na(n_processors) && as.integer(n_processors) > 1) as.integer(n_processors) else NULL
-    )
+  if (sceptre_g_assign_method == "thresholding"){
+    sceptre_object <- sceptre_object |>
+      sceptre::assign_grnas(
+        method = sceptre_g_assign_method,
+        threshold = 1,
+        parallel = (!is.na(n_processors) && as.integer(n_processors) > 1),
+        n_processors = if (!is.na(n_processors) && as.integer(n_processors) > 1) as.integer(n_processors) else NULL
+      ) |>
+      sceptre::run_qc(
+        n_nonzero_trt_thresh = 0L,
+        n_nonzero_cntrl_thresh = 0L,
+        p_mito_threshold = 1
+      ) |>
+      sceptre::run_discovery_analysis(
+        parallel = (!is.na(n_processors) && as.integer(n_processors) > 1),
+        n_processors = if (!is.na(n_processors) && as.integer(n_processors) > 1) as.integer(n_processors) else NULL
+      )
+  } else {
+    sceptre_object <- sceptre_object |>
+      sceptre::assign_grnas(
+        method = sceptre_g_assign_method,
+        parallel = (!is.na(n_processors) && as.integer(n_processors) > 1),
+        n_processors = if (!is.na(n_processors) && as.integer(n_processors) > 1) as.integer(n_processors) else NULL
+      ) |>
+      sceptre::run_qc(
+        n_nonzero_trt_thresh = 0L,
+        n_nonzero_cntrl_thresh = 0L,
+        p_mito_threshold = 1
+      ) |>
+      sceptre::run_discovery_analysis(
+        parallel = (!is.na(n_processors) && as.integer(n_processors) > 1),
+        n_processors = if (!is.na(n_processors) && as.integer(n_processors) > 1) as.integer(n_processors) else NULL
+      )
+    }
 
   # extract singleton (per-guide) results, preserve grna_id and rename to guide_id
   singleton_results <- sceptre_object |>

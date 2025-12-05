@@ -1,10 +1,7 @@
-
 process mappingscRNA {
-
     cache 'lenient'
     debug true
     stageOutMode 'copy'
-
 
     input:
     tuple val(meta), path(reads)
@@ -20,29 +17,42 @@ process mappingscRNA {
     path "*_ks_transcripts_out/counts_unfiltered/adata.h5ad", emit: ks_transcripts_out_adata
 
     script:
-        def batch = meta.measurement_sets
-        def fastq_files = reads.join(' ')
-        """
-        echo "Processing $batch with $fastq_files"
+    def batch = meta.measurement_sets
+    def fastq_files = reads.join(' ')
 
-        k_bin=\$(type -p kallisto)
-        bustools_bin=\$(type -p bustools)
-        chemistry=\$(extract_parsed_seqspec.py --file ${parsed_seqSpec_file})
+    def workflow_args = params.scrna_workflow == "standard" ? 
+        "--workflow standard" : 
+        "--workflow nac -c1 ${cdna} -c2 ${nascent_idx}"
+    
+    def mm_flag = (params.scrna_workflow == "standard" && params.use_multimapping) ? "--mm" : ""
+    // If nascent workflow, always use --mm
+    if (params.scrna_workflow == "nac") {
+        mm_flag = "--mm"
+    }
+    
+    """
+    echo "Processing ${batch} with ${fastq_files}"
 
-        kb count -i ${transcriptome_idx} \\
-                -g ${transcriptome_t2g} \\
-                --workflow nac --mm -c1 ${cdna} -c2 ${nascent_idx} \\
-                -x \$chemistry \\
-                -w ${barcode_file} \\
-                -o ${batch}_ks_transcripts_out \\
-                -t ${task.cpus} \\
-                ${fastq_files} \\
-                --h5ad \\
-                --kallisto \$k_bin \
-                --bustools \$bustools_bin \\
-                --overwrite \\
-                --verbose
+    k_bin=\$(type -p kallisto)
+    bustools_bin=\$(type -p bustools)
+    chemistry=\$(extract_parsed_seqspec.py --file ${parsed_seqSpec_file})
+    
+    kb count \\
+        -i ${transcriptome_idx} \\
+        -g ${transcriptome_t2g} \\
+        ${workflow_args} \\
+        ${mm_flag} \\
+        -x \$chemistry \\
+        -w ${barcode_file} \\
+        -o ${batch}_ks_transcripts_out \\
+        -t ${task.cpus} \\
+        ${fastq_files} \\
+        --h5ad \\
+        --kallisto \$k_bin \\
+        --bustools \$bustools_bin \\
+        --overwrite \\
+        --verbose
 
-        echo "scRNA KB mapping Complete"
-        """
+    echo "scRNA KB mapping Complete"
+    """
 }
