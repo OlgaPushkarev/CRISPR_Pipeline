@@ -13,12 +13,13 @@ def main(adata_rna, adata_guide, guide_metadata, gtf, moi, capture_method, adata
     # Load the data
     guide_metadata = pd.read_csv(guide_metadata, sep='\t')
     adata_rna = ad.read_h5ad(adata_rna)
+    adata_rna.X = adata_rna.X.tocsr()
     adata_guide = ad.read_h5ad(adata_guide)
     df_gtf = read_gtf(gtf).to_pandas()
 
     # Load hashing data if provided
     if 'dummy_hash' in adata_hashing:
-        adata_hashing= None
+        adata_hashing = None
     
     if adata_hashing is not None:
         adata_hashing = ad.read_h5ad(adata_hashing)
@@ -74,15 +75,26 @@ def main(adata_rna, adata_guide, guide_metadata, gtf, moi, capture_method, adata
     df_gtf_copy = df_gtf.copy()
     df_gtf_copy.set_index('gene_id2', inplace=True)
     # adding gene_start, gene_end, gene_chr
-    adata_rna.var = adata_rna.var.join(df_gtf_copy[['seqname', 'start', 'end']].rename(columns={'seqname': 'gene_chr', 
-                                                                                            'start': 'gene_start', 
-                                                                                            'end': 'gene_end'}))
+    adata_rna.var = adata_rna.var.join(
+        df_gtf_copy[['seqname', 'start', 'end']].rename(
+            columns={
+                'seqname': 'gene_chr', 
+                'start': 'gene_start', 
+                'end': 'gene_end'
+            }
+        )
+    )
 
     # rename adata_rna obs
-    adata_rna.obs.rename(columns={'n_genes_by_counts': 'n_counts',
-                                'pct_counts_mt': 'percent_mito',
-                                'n_genes' : 'num_expressed_genes',
-                                'total_counts' : 'total_gene_umis'}, inplace=True)
+    adata_rna.obs.rename(
+        columns={
+            'n_genes_by_counts': 'n_counts',
+            'pct_counts_mt': 'percent_mito',
+            'n_genes' : 'num_expressed_genes',
+            'total_counts' : 'total_gene_umis'
+        },
+        inplace=True
+    )
     
 
     # knee plots
@@ -99,23 +111,25 @@ def main(adata_rna, adata_guide, guide_metadata, gtf, moi, capture_method, adata
     plt.title('Knee Plot')
 
     # Save knee plot
-    if not os.path.exists('figures'):
-        os.makedirs('figures')
-        print(f"Directory '{'figures'}' created.")
-    else:
-        print(f"Directory already exists.")
-
+    os.makedirs('figures', exist_ok=True)
     plt.savefig('figures/knee_plot_guide.png')
 
     # Find the intersection of barcodes between scRNA and guide data
-    intersecting_barcodes = list(set(adata_rna.obs_names)
-                                .intersection(adata_guide.obs_names))
+    intersecting_barcodes = list(
+        set(adata_rna.obs_names).intersection(adata_guide.obs_names)
+    )
 
     # Include hashing barcodes if provided
     if adata_hashing is not None:
-        intersecting_barcodes = list(set(intersecting_barcodes)
-                                   .intersection(adata_hashing.obs_names))
+        intersecting_barcodes = list(
+            set(intersecting_barcodes).intersection(adata_hashing.obs_names)
+        )
 
+    print("adata_rna", adata_rna)
+    for col in adata_rna.obs.columns:
+        if pd.api.types.is_categorical_dtype(adata_rna.obs[col]):
+            adata_rna.obs[col] = adata_rna.obs[col].cat.remove_unused_categories()
+    print("intersecting_barcodes", adata_rna[intersecting_barcodes[:3], :])
     # Create MuData with conditional hashing modality
     mudata_dict = {
         'gene': adata_rna[intersecting_barcodes, :].copy(),

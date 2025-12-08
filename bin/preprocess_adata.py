@@ -59,16 +59,11 @@ def main(
     else: 
         raise ValueError("The number of gene names does not match the number of variables in adata_rna")
 
-    # Save knee plot
-    if not os.path.exists('figures'):
-        os.makedirs('figures')
-        print("Directory '{'figures'}' created.")
-    else:
-        print("Directory already exists.")
+    os.makedirs('figures', exist_ok=True)
 
     # knee plots
     knee_df = pd.DataFrame({
-        'sum': np.array(adata_rna.X.sum(1)).flatten(),
+        'sum': np.array(adata_rna.X.sum(axis=1)).flatten(),
         'barcodes': adata_rna.obs_names.values})
     knee_df = knee_df.sort_values('sum', ascending=False).reset_index(drop=True)
     knee_df['sum_log'] = np.log1p(knee_df['sum'])
@@ -76,7 +71,7 @@ def main(
     fig, ax = plt.subplots(1, 1, figsize=(5, 5))
     ax.plot(knee_df.index, knee_df['sum_log'], marker='o', linestyle='-', markersize=3)
     ax.set_xlabel('Barcodes', size=12)
-    ax.set_ylabel('$\log_{10}$( UMI Counts )', size=12)
+    ax.set_ylabel('$\log_{1+p}$( UMI Counts )', size=12)
     ax.set_title('Knee plot', size=12)
     plt.tight_layout()
     plt.savefig(
@@ -85,6 +80,7 @@ def main(
         bbox_inches="tight",
         transparent=True
     )
+    plt.close()
 
     # Add batch number
     adata_rna.obs['batch_number'] = adata_rna.obs['batch'].factorize()[0] + 1
@@ -101,7 +97,12 @@ def main(
 
     # Calculate QC metrics
     adata_rna.X = adata_rna.X.astype(np.float32)
-    sc.pp.calculate_qc_metrics(adata_rna, qc_vars=["mt", "ribo"], inplace=True, log1p=True)
+    sc.pp.calculate_qc_metrics(
+        adata_rna,
+        qc_vars=["mt", "ribo"],
+        inplace=True,
+        log1p=True
+    )
 
     # Plot violin
 
@@ -120,6 +121,8 @@ def main(
         "G2M_score": "G2M score"
     }
 
+
+
     qc_metrics = ["n_genes_by_counts", "total_counts", "pct_counts_mt"]
     fig, ax = plt.subplots(
         1,
@@ -127,8 +130,8 @@ def main(
         figsize=(len(qc_metrics) * 1.75, 5),
     )
     for i, qc_metric in enumerate(qc_metrics):
-        _, low, high = is_outlier(adata_rna, qc_metric, n_mads, verbose=True)
-        low = max(0, low)
+        outlier_mask, low, high = is_outlier(adata_rna, qc_metric, n_mads, verbose=True)
+        low = max(0, low)  # Ensure non-negative lower bound
 
         sc.pl.violin(
             adata_rna,
@@ -166,12 +169,11 @@ def main(
             transform=ax[i].transAxes,
             fontsize=8,
         )
-        ax[i].axhline(low, ls="--", lw=0.5, color="red")
-        ax[i].axhline(high, ls="--", lw=0.5, color="red")
-        if i == 0:
-            ax[i].set_ylabel(labeling_dict.get(qc_metric), size=12)
-        else:
-            ax[i].set_ylabel("")
+        ax[i].axhline(low, ls="--", lw=0.5, color="red", zorder=3)
+        ax[i].axhline(high, ls="--", lw=0.5, color="red", zorder=3)
+        
+        ax[i].set_ylabel(labeling_dict.get(qc_metric, qc_metric) if i == 0 else "", size=12)
+        ax[i].set_xlabel("")
     plt.tight_layout()
     plt.savefig(
         os.path.join(output_dir, "plot_qcs_violin.pdf"),
@@ -179,6 +181,7 @@ def main(
         bbox_inches="tight",
         transparent=True
     )
+    plt.close()
 
     # Plot scatter
     fig, ax = plt.subplots(1, 1, figsize=(5, 5))
@@ -212,24 +215,32 @@ def main(
         bbox_inches="tight",
         transparent=True
     )
+    plt.close()
 
-    # filter for mic_cells and min_genes
-    sc.pp.filter_cells(adata_rna, min_genes=min_genes)
-    sc.pp.filter_genes(adata_rna, min_cells=min_cells)
+    print(f"Before filtering: {adata_rna.n_obs} cells x {adata_rna.n_vars} genes")
+     # min_counts_cell = np.percentile(adata_rna.obs['total_counts'], 1)
+    print("1st percentile", np.percentile(adata_rna.obs['total_counts'], 1))
+    sc.pp.filter_cells(adata_rna, min_counts=min_genes)  # min_genes=min_genes)
 
-    # filter for percent mito
     adata_rna.obs["outlier"] = (
-        is_outlier(adata_rna, "total_counts", n_mads, verbose=False)
-        | is_outlier(adata_rna, "n_genes_by_counts", n_mads, verbose=False)
+        is_outlier(adata_rna, "log1p_total_counts", n_mads, verbose=False)
+        | is_outlier(adata_rna, "log1p_n_genes_by_counts", n_mads, verbose=False)
         | is_outlier(adata_rna, "pct_counts_mt", n_mads, verbose=False)
         | is_outlier(adata_rna, "pct_counts_ribo", n_mads, verbose=False)
     )
 
-    # Save unfilteredscRNA data for exploration
-    adata_rna.write(os.path.join(args.output_dir, 'unfiltered_scRNA_anndata.h5ad'))
+    print(f"# outlier cells: {adata_rna.obs['outlier'].sum()}")
+    # adata_rna.write(os.path.join(args.output_dir, 'unfiltered_scRNA_anndata.h5ad'))
 
     if filter_outliers:
         adata_rna = adata_rna[~adata_rna.obs.outlier].copy()
+        print(f"After filtering: {adata_rna.n_obs} cells")
+    else:
+        print("Skipping outlier removal (filter_outliers=False)")
+
+    sc.pp.filter_genes(adata_rna, min_cells=min_cells)
+    sc.pp.filter_genes(adata_rna, min_counts=min_cells * 20)
+    print(f"\nFinal: {adata_rna.n_obs} cells x {adata_rna.n_vars} genes")
         
     adata_rna.write('filtered_anndata.h5ad')
     adata_rna.write(os.path.join(args.output_dir, 'filtered_anndata.h5ad'))
@@ -240,10 +251,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Perform QC on AnnData.')
     parser.add_argument('adata_rna', type=str, help='Path to the AnnData file.')
     parser.add_argument('gname_rna', type=str, help='Path to the cells x genes txt file.')
-    parser.add_argument('--filter_outliers', type=bool, default=True, help='Filter out the outliers based on n MADs.')
-    parser.add_argument('--min_genes', type=int, default=100, help='Minimum number of genes per cell.')
-    parser.add_argument('--min_cells', type=float, default=10, help='Minimum number of cells per gene.')
-    parser.add_argument('--n_mads', type=float, default=5, help='Minimum percentage of mitochondrial reads in cells.')
+    parser.add_argument('--filter_outliers', type=bool, default=True, help='Remove the outliers')
+    parser.add_argument('--min_genes', type=int, default=100, help='Minimum counts for genes per cell')
+    parser.add_argument('--min_cells', type=int, default=10, help='Minimum number of cells per gene')
+    parser.add_argument('--n_mads', type=float, default=5, help='n median absolute deviations to filteer outliers')
     parser.add_argument('--reference', type=str, required=True, help='Reference species')
     parser.add_argument('--output_dir', required=True, help='Directory where plots will be saved')
 
