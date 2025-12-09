@@ -15,6 +15,8 @@ workflow preprocessing_pipeline {
         params.QC_filter_outliers,
         params.QC_min_genes_per_cell,
         params.QC_min_cells_per_gene,
+        params.QC_min_counts_per_cell,
+        params.QC_min_counts_per_gene,
         params.QC_n_mads,
         params.REFERENCE_transcriptome
     )

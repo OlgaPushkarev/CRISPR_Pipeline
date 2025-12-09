@@ -7,8 +7,10 @@ process PreprocessAnnData {
     path adata_rna
     path gname_rna
     val filter_outliers
-    val min_genes
-    val min_cells
+    val min_genes_per_cell
+    val min_cells_per_gene
+    val min_counts_per_cell
+    val min_counts_per_gene
     val n_mads
     val reference
 
@@ -21,8 +23,10 @@ process PreprocessAnnData {
         """
         preprocess_adata.py ${adata_rna} ${gname_rna} \\
             --filter_outliers ${filter_outliers} \\
-            --min_genes ${min_genes} \\
-            --min_cells ${min_cells} \\
+            --min_genes_per_cell ${min_genes_per_cell} \\
+            --min_cells_per_gene ${min_cells_per_gene} \\
+            --min_counts_per_cell ${min_counts_per_cell} \\
+            --min_counts_per_gene ${min_counts_per_gene} \\
             --n_mads ${n_mads} \\
             --reference ${reference} \\
             --output_dir figures

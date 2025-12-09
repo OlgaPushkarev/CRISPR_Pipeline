@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+#!/usr/bin/env python
 import argparse
 import scanpy as sc
 import pandas as pd
@@ -36,8 +37,10 @@ def main(
         adata_rna,
         gname_rna,
         filter_outliers,
-        min_genes,
-        min_cells,
+        min_genes_per_cell,
+        min_cells_per_gene,
+        min_counts_per_cell,
+        min_counts_per_gene,
         n_mads,
         reference,
         output_dir
@@ -106,22 +109,17 @@ def main(
 
     # Plot violin
 
-    # 'n_genes_by_counts': 'n_counts', = # genes per cell
-    # 'total_counts' = 'total_gene_umis' = # UMIs per cell = sequencing depth = library size
+    # 'n_genes_by_counts':# genes per cell
+    # 'total_counts' = # UMIs per cell = sequencing depth = library size
 
     labeling_dict = {
         'n_genes_by_counts': '# genes per cell',
-        'n_counts': '# genes per cell',
         'total_counts': '# UMIs per cell',
-        'total_gene_umis': '# UMIs per cell',
         'pct_counts_mt': '% mitochondrial UMIs',
-        'percent_mito': '% mitochondrial UMIs',
         'pct_counts_ribo': '% ribosomal UMIs',
         "S_score": "S score",
         "G2M_score": "G2M score"
     }
-
-
 
     qc_metrics = ["n_genes_by_counts", "total_counts", "pct_counts_mt"]
     fig, ax = plt.subplots(
@@ -218,9 +216,8 @@ def main(
     plt.close()
 
     print(f"Before filtering: {adata_rna.n_obs} cells x {adata_rna.n_vars} genes")
-     # min_counts_cell = np.percentile(adata_rna.obs['total_counts'], 1)
-    print("1st percentile", np.percentile(adata_rna.obs['total_counts'], 1))
-    sc.pp.filter_cells(adata_rna, min_counts=min_genes)  # min_genes=min_genes)
+    sc.pp.filter_cells(adata_rna, min_genes=min_genes_per_cell)
+    sc.pp.filter_cells(adata_rna, min_counts=min_counts_per_cell)
 
     adata_rna.obs["outlier"] = (
         is_outlier(adata_rna, "log1p_total_counts", n_mads, verbose=False)
@@ -238,10 +235,9 @@ def main(
     else:
         print("Skipping outlier removal (filter_outliers=False)")
 
-    sc.pp.filter_genes(adata_rna, min_cells=min_cells)
-    sc.pp.filter_genes(adata_rna, min_counts=min_cells * 20)
+    sc.pp.filter_genes(adata_rna, min_cells=min_cells_per_gene)
+    sc.pp.filter_genes(adata_rna, min_counts=min_counts_per_gene)
     print(f"\nFinal: {adata_rna.n_obs} cells x {adata_rna.n_vars} genes")
-        
     adata_rna.write('filtered_anndata.h5ad')
     adata_rna.write(os.path.join(args.output_dir, 'filtered_anndata.h5ad'))
 
@@ -252,8 +248,10 @@ if __name__ == "__main__":
     parser.add_argument('adata_rna', type=str, help='Path to the AnnData file.')
     parser.add_argument('gname_rna', type=str, help='Path to the cells x genes txt file.')
     parser.add_argument('--filter_outliers', type=bool, default=True, help='Remove the outliers')
-    parser.add_argument('--min_genes', type=int, default=100, help='Minimum counts for genes per cell')
-    parser.add_argument('--min_cells', type=int, default=10, help='Minimum number of cells per gene')
+    parser.add_argument('--min_genes_per_cell', type=int, default=100, help='Minimum number of genes per cell')
+    parser.add_argument('--min_cells_per_gene', type=int, default=10, help='Minimum number of cells per gene')
+    parser.add_argument('--min_counts_per_cell', type=int, default=500, help='Minimum number of UMIs per cell')
+    parser.add_argument('--min_counts_per_gene', type=int, default=20, help='Minimum number of UMIs per gene')
     parser.add_argument('--n_mads', type=float, default=5, help='n median absolute deviations to filteer outliers')
     parser.add_argument('--reference', type=str, required=True, help='Reference species')
     parser.add_argument('--output_dir', required=True, help='Directory where plots will be saved')
@@ -267,8 +265,10 @@ if __name__ == "__main__":
         args.adata_rna,
         args.gname_rna,
         args.filter_outliers,
-        args.min_genes,
-        args.min_cells,
+        args.min_genes_per_cell,
+        args.min_cells_per_gene,
+        args.min_counts_per_cell,
+        args.min_counts_per_gene,
         args.n_mads,
         args.reference,
         args.output_dir

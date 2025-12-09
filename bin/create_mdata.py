@@ -8,12 +8,13 @@ from muon import MuData
 from gtfparse import read_gtf
 import matplotlib.pyplot as plt
 import os
+import sys
+import muon as mu
 
 def main(adata_rna, adata_guide, guide_metadata, gtf, moi, capture_method, adata_hashing=None):
     # Load the data
     guide_metadata = pd.read_csv(guide_metadata, sep='\t')
     adata_rna = ad.read_h5ad(adata_rna)
-    adata_rna.X = adata_rna.X.tocsr()
     adata_guide = ad.read_h5ad(adata_guide)
     df_gtf = read_gtf(gtf).to_pandas()
 
@@ -88,15 +89,16 @@ def main(adata_rna, adata_guide, guide_metadata, gtf, moi, capture_method, adata
     # rename adata_rna obs
     adata_rna.obs.rename(
         columns={
-            'n_genes_by_counts': 'n_counts',
-            'pct_counts_mt': 'percent_mito',
-            'n_genes' : 'num_expressed_genes',
+            # 'n_genes_by_counts': 'n_counts',
+            # ## n_counts conflicts with n_counts generated at the preprocess_anndata.py step
+            # 'pct_counts_mt': 'percent_mito',
+            # 'n_genes' : 'num_expressed_genes',
             'total_counts' : 'total_gene_umis'
         },
         inplace=True
     )
+    assert not adata_rna.obs.columns.duplicated().any(), "Duplicate columns detected!"
     
-
     # knee plots
     knee_df = pd.DataFrame({
         'sum': np.array(adata_guide.X.sum(1)).flatten(),
@@ -125,11 +127,20 @@ def main(adata_rna, adata_guide, guide_metadata, gtf, moi, capture_method, adata
             set(intersecting_barcodes).intersection(adata_hashing.obs_names)
         )
 
-    print("adata_rna", adata_rna)
     for col in adata_rna.obs.columns:
         if pd.api.types.is_categorical_dtype(adata_rna.obs[col]):
             adata_rna.obs[col] = adata_rna.obs[col].cat.remove_unused_categories()
-    print("intersecting_barcodes", adata_rna[intersecting_barcodes[:3], :])
+            adata_rna.obs[col] = adata_rna.obs[col].astype(str).astype('category')
+    
+    print(f"Python: {sys.version}", file=sys.stderr)
+    print(f"AnnData: {ad.__version__}", file=sys.stderr)
+    print(f"Pandas: {pd.__version__}", file=sys.stderr)
+    print(f"Muon: {mu.__version__}", file=sys.stderr)
+
+    # Check for known incompatibilities
+    if pd.__version__.startswith('2.') and ad.__version__.startswith('0.8'):
+        print("WARNING: Potential incompatibility between pandas 2.x and anndata 0.8.x", file=sys.stderr)
+
     # Create MuData with conditional hashing modality
     mudata_dict = {
         'gene': adata_rna[intersecting_barcodes, :].copy(),

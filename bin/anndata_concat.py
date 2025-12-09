@@ -44,6 +44,9 @@ def main():
                     adata.layers['nascent'].astype(np.float32) + 
                     adata.layers['ambiguous'].astype(np.float32)
                 )
+                adata.layers['mature'] = adata.layers['mature'].astype(np.float32)
+                adata.layers['nascent'] = adata.layers['nascent'].astype(np.float32)
+                adata.layers['ambiguous'] = adata.layers['ambiguous'].astype(np.float32)
                 print("Nascent (nac) workflow detected: combining mature, nascent, and ambiguous counts into .X")
             else:
                 print("Standard workflow detected: Using existing .X matrix")
