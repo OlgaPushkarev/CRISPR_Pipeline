@@ -37,21 +37,18 @@ def main():
         
         adata = ad.read_h5ad(h5ad_path)
         adata.X = adata.X.astype(np.float32)
-        try:
-            if all(layer in adata.layers for layer in ['mature', 'nascent', 'ambiguous']):
-                adata.X = (
-                    adata.layers['mature'].astype(np.float32) + 
-                    adata.layers['nascent'].astype(np.float32) + 
-                    adata.layers['ambiguous'].astype(np.float32)
-                )
-                adata.layers['mature'] = adata.layers['mature'].astype(np.float32)
-                adata.layers['nascent'] = adata.layers['nascent'].astype(np.float32)
-                adata.layers['ambiguous'] = adata.layers['ambiguous'].astype(np.float32)
-                print("Nascent (nac) workflow detected: combining mature, nascent, and ambiguous counts into .X")
-            else:
-                print("Standard workflow detected: Using existing .X matrix")
-        except Exception as e:
-            print(f"Error combining layers: {e}")
+        if all(layer in adata.layers for layer in ['mature', 'nascent', 'ambiguous']):
+            adata.X = (
+                adata.layers['mature'].astype(np.float32) + 
+                adata.layers['nascent'].astype(np.float32) + 
+                adata.layers['ambiguous'].astype(np.float32)
+            )
+            adata.layers['mature'] = adata.layers['mature'].astype(np.float32)
+            adata.layers['nascent'] = adata.layers['nascent'].astype(np.float32)
+            adata.layers['ambiguous'] = adata.layers['ambiguous'].astype(np.float32)
+            print("Nascent (nac) workflow detected: combining mature, nascent, and ambiguous counts into .X")
+        else:
+            print("Standard workflow detected: Using existing .X matrix")
             
         if idx == 0 and adata.var_names.name is not None:
             var_index_name = adata.var_names.name

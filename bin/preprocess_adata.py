@@ -174,7 +174,7 @@ def main(
         ax[i].set_xlabel("")
     plt.tight_layout()
     plt.savefig(
-        os.path.join(output_dir, "plot_qcs_violin.pdf"),
+        os.path.join(output_dir, "plot_qcs_violin.png"),
         dpi=300,
         bbox_inches="tight",
         transparent=True
@@ -208,7 +208,7 @@ def main(
     cbar = plt.colorbar(scatter, ax=ax)
     cbar.set_label(labeling_dict.get(color_by))
     plt.savefig(
-        os.path.join(output_dir, "plot_total_gene_umis_vs_ngenes_by_counts_mt_color_before_filter_scatter.pdf"),
+        os.path.join(output_dir, "plot_total_gene_umis_vs_ngenes_by_counts_mt_color_before_filter_scatter.png"),
         dpi=300,
         bbox_inches="tight",
         transparent=True
@@ -216,8 +216,6 @@ def main(
     plt.close()
 
     print(f"Before filtering: {adata_rna.n_obs} cells x {adata_rna.n_vars} genes")
-    sc.pp.filter_cells(adata_rna, min_genes=min_genes_per_cell)
-    sc.pp.filter_cells(adata_rna, min_counts=min_counts_per_cell)
 
     adata_rna.obs["outlier"] = (
         is_outlier(adata_rna, "log1p_total_counts", n_mads, verbose=False)
@@ -235,6 +233,10 @@ def main(
     else:
         print("Skipping outlier removal (filter_outliers=False)")
 
+    # if add_extra_filter:
+        # sc.pp.filter_cells(adata_rna, min_genes=min_genes_per_cell)
+        # sc.pp.filter_cells(adata_rna, min_counts=min_counts_per_cell)
+    
     sc.pp.filter_genes(adata_rna, min_cells=min_cells_per_gene)
     sc.pp.filter_genes(adata_rna, min_counts=min_counts_per_gene)
     print(f"\nFinal: {adata_rna.n_obs} cells x {adata_rna.n_vars} genes")
