@@ -90,7 +90,7 @@ def main(adata_rna, adata_guide, guide_metadata, gtf, moi, capture_method, adata
     adata_rna.obs.rename(
         columns={
             # 'n_genes_by_counts': 'n_counts',
-            # ## n_counts conflicts with n_counts generated at the preprocess_anndata.py step
+            # # n_counts conflicts with n_counts generated at the sc.filter_cells(adata, min_counts=...) in preprocess_anndata.py
             # 'pct_counts_mt': 'percent_mito',
             # 'n_genes' : 'num_expressed_genes',
             'total_counts' : 'total_gene_umis'
@@ -106,15 +106,15 @@ def main(adata_rna, adata_guide, guide_metadata, gtf, moi, capture_method, adata
     knee_df = knee_df.sort_values('sum', ascending=False).reset_index(drop=True)
     knee_df['sum_log'] = np.log1p(knee_df['sum'])
 
-    plt.figure(figsize=(8, 5))
-    plt.plot(knee_df.index, knee_df['sum_log'], marker='o', linestyle='-', markersize=3)
-    plt.xlabel('Barcode Index')
-    plt.ylabel('Log of UMI Counts')
-    plt.title('Knee Plot')
-
+    fig, ax = plt.subplots(1, 1, figsize=(5, 5))
+    ax.plot(knee_df.index, knee_df['sum_log'], marker='o', linestyle='-', markersize=3)
+    ax.set_xlabel('Barcode Index', size=12)
+    ax.set_ylabel('Log of UMI Counts', size=12)
+    ax.set_title('Knee Plot', size=12)
     # Save knee plot
     os.makedirs('figures', exist_ok=True)
-    plt.savefig('figures/knee_plot_guide.png')
+    plt.savefig('figures/knee_plot_guide.png', dpi=300, bbox_inches='tight', transparent=True)
+    plt.close()
 
     # Find the intersection of barcodes between scRNA and guide data
     intersecting_barcodes = list(
@@ -126,20 +126,6 @@ def main(adata_rna, adata_guide, guide_metadata, gtf, moi, capture_method, adata
         intersecting_barcodes = list(
             set(intersecting_barcodes).intersection(adata_hashing.obs_names)
         )
-
-    for col in adata_rna.obs.columns:
-        if pd.api.types.is_categorical_dtype(adata_rna.obs[col]):
-            adata_rna.obs[col] = adata_rna.obs[col].cat.remove_unused_categories()
-            adata_rna.obs[col] = adata_rna.obs[col].astype(str).astype('category')
-    
-    print(f"Python: {sys.version}", file=sys.stderr)
-    print(f"AnnData: {ad.__version__}", file=sys.stderr)
-    print(f"Pandas: {pd.__version__}", file=sys.stderr)
-    print(f"Muon: {mu.__version__}", file=sys.stderr)
-
-    # Check for known incompatibilities
-    if pd.__version__.startswith('2.') and ad.__version__.startswith('0.8'):
-        print("WARNING: Potential incompatibility between pandas 2.x and anndata 0.8.x", file=sys.stderr)
 
     # Create MuData with conditional hashing modality
     mudata_dict = {

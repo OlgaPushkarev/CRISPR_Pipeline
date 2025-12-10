@@ -15,7 +15,7 @@ process mudata_concat {
 
         if [ "${dual_guide}" = "true" ]; then
             echo "Dual guide mode enabled, processing accordingly."
-            collapse_guides.py concat_mudata.h5mu  concat_mudata_collapsed.h5mu
+            collapse_guides.py concat_mudata.h5mu concat_mudata_collapsed.h5mu
             mv concat_mudata_collapsed.h5mu concat_mudata.h5mu
 
         else
