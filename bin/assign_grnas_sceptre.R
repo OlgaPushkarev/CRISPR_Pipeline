@@ -1,6 +1,30 @@
 #!/usr/bin/env Rscript
 library(Matrix)
 
+remove_collinear_columns <- function(df) {
+  if (ncol(df) == 0 || nrow(df) == 0) {
+    return(df)
+  }
+  
+  # Convert all columns to numeric for correlation analysis
+  # Keep track of original factor columns
+  df_numeric <- df
+  for (col in names(df_numeric)) {
+    if (is.factor(df_numeric[[col]]) || is.character(df_numeric[[col]])) {
+      df_numeric[[col]] <- as.numeric(as.factor(df_numeric[[col]]))
+    }
+  }
+  
+  # Use QR decomposition to find linearly independent columns
+  qr_result <- qr(as.matrix(df_numeric))
+  independent_cols <- qr_result$pivot[1:qr_result$rank]
+  
+  # Return only the linearly independent columns
+  df_clean <- df[, independent_cols, drop = FALSE]
+  xx
+  return(df_clean)
+}
+
 assign_grnas_sceptre_v1 <- function(mudata, probability_threshold = "default", n_em_rep = "default", n_processors = NA) {
   # convert MuData object to sceptre object, removing multicollinear covariates
   sceptre_object <- convert_mudata_to_sceptre_object_v1(
@@ -16,7 +40,11 @@ assign_grnas_sceptre_v1 <- function(mudata, probability_threshold = "default", n
         response_id = character(0)
       )
     )
-
+  
+  # print("Cleaned covariate data frame:")
+  print(sceptre_object@covariate_data_frame)
+  print(colnames(sceptre_object@covariate_data_frame))
+  
   # assign gRNAs
   assign_grnas_args <- list(sceptre_object, method = "mixture")
   

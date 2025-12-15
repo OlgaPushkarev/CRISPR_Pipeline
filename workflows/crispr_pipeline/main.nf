@@ -213,12 +213,12 @@ workflow CRISPR_PIPELINE {
 
         // Shared processing pipeline
         GuideAssignment = guide_assignment_pipeline(mudata_for_processing)
-        // Inference = inference_pipeline(GuideAssignment.concat_mudata, Preprocessing.gencode_gtf)
+        Inference = inference_pipeline(GuideAssignment.concat_mudata, Preprocessing.gencode_gtf)
 
         evaluation_pipeline (
             Preprocessing.gencode_gtf,
-            // Inference.inference_mudata
-            GuideAssignment.concat_mudata
+            Inference.inference_mudata
+            // GuideAssignment.concat_mudata
         )
 
         dashboard_pipeline (
@@ -229,8 +229,8 @@ workflow CRISPR_PIPELINE {
             mapping_rna_pipeline.out.ks_transcripts_out_dir_collected,
             MergeMuData.adata_guide,
             mapping_guide_pipeline.out.ks_guide_out_dir_collected,
-            GuideAssignment.concat_mudata,
-            // Inference.inference_mudata,
+            // GuideAssignment.concat_mudata,
+            Inference.inference_mudata,
             Preprocessing.figures_dir,
             evaluation_pipeline.out.evaluation_output_dir
             )

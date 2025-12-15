@@ -107,6 +107,20 @@ def main(
         log1p=True
     )
 
+
+    # s_genes = pd.read_csv(
+    #     "../hs_cell_cycle_s_genes.txt",
+    #     header=None,
+    #     names=["s_genes"],
+    # ).values.flatten()
+    # g2m_genes = pd.read_csv(
+    #     "../hs_cell_cycle_g2m_genes.txt",
+    #     header=None,
+    #     names=["g2m_genes"],
+    # ).values.flatten()
+
+    # sc.tl.score_genes_cell_cycle(adata_rna, s_genes=s_genes, g2m_genes=g2m_genes)
+
     # Plot violin
 
     # 'n_genes_by_counts':# genes per cell
@@ -234,8 +248,8 @@ def main(
         print("Skipping outlier removal (filter_outliers=False)")
 
     # if add_extra_filter:
-        # sc.pp.filter_cells(adata_rna, min_genes=min_genes_per_cell)
-        # sc.pp.filter_cells(adata_rna, min_counts=min_counts_per_cell)
+    sc.pp.filter_cells(adata_rna, min_genes=min_genes_per_cell)
+    sc.pp.filter_cells(adata_rna, min_counts=min_counts_per_cell)
     
     sc.pp.filter_genes(adata_rna, min_cells=min_cells_per_gene)
     sc.pp.filter_genes(adata_rna, min_counts=min_counts_per_gene)

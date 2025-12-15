@@ -3,21 +3,20 @@ process mappingGuide {
     debug true
     stageOutMode 'copy'
 
-
     input:
     tuple val(meta), path(reads)
     path guide_index
     path t2g_guide
     path parsed_seqSpec_file
     path barcode_file
-    val  is_10xv3v   // should be "true" or "false"
+    val is_10xv3v   // should be "true" or "false"
 
     output:
     path "*_ks_guide_out", emit: ks_guide_out_dir
     path "*_ks_guide_out/counts_unfiltered/adata.h5ad", emit: ks_guide_out_adata
 
     script:
-        def batch       = meta.measurement_sets
+        def batch = meta.measurement_sets
         def fastq_files = reads.join(' ')
         """
         set -euo pipefail
@@ -25,41 +24,28 @@ process mappingGuide {
 
         k_bin=\$(type -p kallisto)
         bustools_bin=\$(type -p bustools)
-        chemistry=\$(extract_parsed_seqspec.py --file ${parsed_seqSpec_file})
 
         if [ '${is_10xv3v}' = 'true' ]; then
-            echo "Detected 10x V3 chemistry, running additional processing"
-
-            kb count -i ${guide_index} \\
-                -g ${t2g_guide} \\
-                --workflow kite:10xFB \\
-                -x 10XV3 \\
-                -w ${barcode_file} \\
-                -o ${batch}_ks_guide_out \\
-                -t ${task.cpus} \\
-                ${fastq_files} \\
-                --h5ad \\
-                --kallisto "\$k_bin" \\
-                --bustools "\$bustools_bin" \\
-                --overwrite \\
-                --verbose
+            echo "Detected 10x V3 chemistry, using 10XV3 chemistry with kite workflow"
+            chemistry="10XV3"
         else
-            echo "Detected non-10x V3 chemistry, running kite processing"
-
-            kb count -i ${guide_index} \\
-                -g ${t2g_guide} \\
-                --workflow kite \\
-                -x "\$chemistry" \\
-                -w ${barcode_file} \\
-                -o ${batch}_ks_guide_out \\
-                -t ${task.cpus} \\
-                ${fastq_files} \\
-                --h5ad \\
-                --kallisto "\$k_bin" \\
-                --bustools "\$bustools_bin" \\
-                --overwrite \\
-                --verbose
+            echo "Detected non-10x V3 chemistry, extracting chemistry from seqspec"
+            chemistry=\$(extract_parsed_seqspec.py --file ${parsed_seqSpec_file})
         fi
+
+        kb count -i ${guide_index} \\
+            -g ${t2g_guide} \\
+            --workflow kite \\
+            -x "\$chemistry" \\
+            -w ${barcode_file} \\
+            -o ${batch}_ks_guide_out \\
+            -t ${task.cpus} \\
+            ${fastq_files} \\
+            --h5ad \\
+            --kallisto "\$k_bin" \\
+            --bustools "\$bustools_bin" \\
+            --overwrite \\
+            --verbose
 
         echo "gRNA KB mapping Complete"
         """
