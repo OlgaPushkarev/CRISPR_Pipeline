@@ -24,7 +24,7 @@ workflow mapping_guide_pipeline {
 
     GuideRef = createGuideRef(ch_guide_design, reverse_complement_flag, spacer_tag)
 
-    bc_replacement_ch = params.replace_barcodes ? Channel.fromPath(params.bc_replacement_file) : Channel.fromPath("dummy_bc_replacement.txt")
+    bc_replacement_ch = params.replace_barcodes ? Channel.fromPath(params.bc_replacement_file).collect() : Channel.fromPath("dummy_bc_replacement.txt").collect()
 
     MappingOut = mappingGuide(
         ch_guide,
